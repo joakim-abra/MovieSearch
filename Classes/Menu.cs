@@ -38,7 +38,7 @@ namespace MovieSearch.Classes
                     Console.WriteLine("Error: Invalid ID; ID can only contain numbers and must not be empty!\n");
                 }
             }
-            if(id==0)
+            if (id == 0)
             {
                 return;
             }
@@ -56,12 +56,12 @@ namespace MovieSearch.Classes
             }
             catch (Exception)
             {
-                Console.WriteLine("Error: {0}",response.StatusCode);
-                Console.WriteLine("Unable to find any match");
-            } 
-            
+                Console.WriteLine("Error {1}: {0}", response.StatusCode, (int)response.StatusCode);
+                Exception((int)response.StatusCode);
+            }
+
         }
-        
+
 
         public async Task SearchTitle()
         {
@@ -95,29 +95,30 @@ namespace MovieSearch.Classes
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine(searchResponse.StatusCode);
-                    Helper();
+                    Console.WriteLine("\nError {1}: {0}", searchResponse.StatusCode, (int)searchResponse.StatusCode);
+                    Exception((int)searchResponse.StatusCode);
+                    return;
                 }
 
                 string search1 = await searchResponse.Content.ReadAsStringAsync();
 
                 Search searchResults = JsonConvert.DeserializeObject<Search>(search1);
                 Console.WriteLine("{0} results found on {1} total page(s):\n", searchResults.total_results, searchResults.total_pages);
-                Console.WriteLine("Page: {0} of {1}",page,searchResults.total_pages);
+                Console.WriteLine("Page: {0} of {1}", page, searchResults.total_pages);
                 Padder();
                 foreach (var item in searchResults.results)
                 {
                     Console.WriteLine(searchResults.results.IndexOf(item) + 1 + ") " + item.title);
                 }
-                if (searchResults.total_pages>1)
+                if (searchResults.total_pages > 1)
                 {
-                    if(searchResults.total_pages!=page)
-                    { 
-                    Padder();
-                    Console.WriteLine(searchResults.results.Count + 1 + ") View next page");
+                    if (searchResults.total_pages != page)
+                    {
+                        Padder();
+                        Console.WriteLine(searchResults.results.Count + 1 + ") View next page");
                         if (searchResults.total_pages != page && page != 1)
                         {
-                            Console.WriteLine(searchResults.results.Count+2 +") View previous page");
+                            Console.WriteLine(searchResults.results.Count + 2 + ") View previous page");
                         }
 
                     }
@@ -133,70 +134,70 @@ namespace MovieSearch.Classes
                 }
                 int choice = -1;
 
-                    Console.WriteLine("0) Return to main menu");
-                    Padder();
-                    Console.Write("Selection: ");
-                    
-                    try
-                    {
-                        choice = Convert.ToInt32(Console.ReadLine());
-                        Console.Clear();
-                    }
-                    catch(Exception)
-                    {
-                        //Console.WriteLine("Invalid choice!");
-                    }
-                    
-                    if (choice <= searchResults.results.Count && choice >= 0)
-                    {
+                Console.WriteLine("0) Return to main menu");
+                Padder();
+                Console.Write("Selection: ");
 
-                        if (choice != 0)
-                        {
-                            searchResults.results[choice - 1].PrintInfo();
-                            Helper();
-                        }
-                        else
-                        {
-                            Console.Clear();
-                            return;
-                        }
-                    }
-                    else if (choice> searchResults.results.Count && searchResults.total_pages>1)
+                try
+                {
+                    choice = Convert.ToInt32(Console.ReadLine());
+                    Console.Clear();
+                }
+                catch (Exception)
+                {
+                    //Console.WriteLine("Invalid choice!");
+                }
+
+                if (choice <= searchResults.results.Count && choice >= 0)
+                {
+
+                    if (choice != 0)
                     {
-                        if (choice == searchResults.results.Count+1 && page != searchResults.total_pages)
-                        {
-                            page++;
-                        }
-                        else if (choice == searchResults.results.Count + 2 && page != searchResults.total_pages && page!=1)
-                        {
-                            page--;
-                        }
-                        else if(choice == searchResults.results.Count+1 && page == searchResults.total_pages)
-                        {
-                            page--;
-                        }
-                        else
-                        {
-                            Console.WriteLine("Error: invalid selection!");
-                        }
+                        searchResults.results[choice - 1].PrintInfo();
+                        Helper();
                     }
                     else
                     {
-                    Console.Clear();
-                        Console.WriteLine("Error: Invalid selection!");
-                        
+                        Console.Clear();
+                        return;
                     }
+                }
+                else if (choice > searchResults.results.Count && searchResults.total_pages > 1)
+                {
+                    if (choice == searchResults.results.Count + 1 && page != searchResults.total_pages)
+                    {
+                        page++;
+                    }
+                    else if (choice == searchResults.results.Count + 2 && page != searchResults.total_pages && page != 1)
+                    {
+                        page--;
+                    }
+                    else if (choice == searchResults.results.Count + 1 && page == searchResults.total_pages)
+                    {
+                        page--;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: invalid selection!");
+                    }
+                }
+                else
+                {
+                    Console.Clear();
+                    Console.WriteLine("Error: Invalid selection!");
+
+                }
             }
         }
-        
+
         public string RunMenu()
         {
-                Console.WriteLine("MovieSearch".PadRight(18, '-').PadLeft(25,'-'));
-                Console.WriteLine("1) Look up movie by ID");
-                Console.WriteLine("2) Search movie by title");
-                Console.WriteLine("3) Exit\n".PadRight(33, '-'));
-                Console.Write("Selection: ");
-                string choice = Console.ReadLine();
+            Console.WriteLine("MovieSearch".PadRight(18, '-').PadLeft(25, '-'));
+            Console.WriteLine("1) Find movie by ID");
+            Console.WriteLine("2) Search movie by title");
+            Console.WriteLine("3) Exit\n".PadRight(33, '-'));
+            Console.Write("Selection: ");
+            string choice = Console.ReadLine();
             return choice;
         }
         public void MainMenu()
@@ -238,6 +239,29 @@ namespace MovieSearch.Classes
         public static void Padder()
         {
             Console.WriteLine("-".PadLeft(50, '-'));
+        }
+
+        public void Exception(int statusCode)
+        {
+            switch (statusCode)
+            {
+                case 404:
+                    Console.WriteLine("No match found for that ID\n");
+                    break;
+                case 503:
+                    Console.WriteLine("Server unavailable\n");
+                    break;
+                case 500:
+                    Console.WriteLine("Server error\n");
+                    break;
+                case 401:
+                    Console.WriteLine("Unauthorized request, check API key\n");
+                    break;
+                default:
+                    Console.WriteLine("Unable to complete request");
+                    break;
+            }
+            Helper();
         }
 
         public Menu()
