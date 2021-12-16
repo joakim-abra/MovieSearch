@@ -20,8 +20,28 @@ namespace MovieSearch.Classes
         {
             DotNetEnv.Env.TraversePath().Load();
             string key = Environment.GetEnvironmentVariable("API_KEY");
-            Console.Write("Enter ID:");
-            int id = Convert.ToInt32(Console.ReadLine());
+            int id;
+            while (true)
+            {
+                try
+                {
+                    Console.WriteLine("Enter (0) to return to main menu");
+                    Padder();
+                    Console.Write("Enter ID: ");
+                    id = Convert.ToInt32(Console.ReadLine());
+                    Console.Clear();
+                    break;
+                }
+                catch (Exception)
+                {
+                    Console.Clear();
+                    Console.WriteLine("Error: Invalid ID; ID can only contain numbers and must not be empty!\n");
+                }
+            }
+            if(id==0)
+            {
+                return;
+            }
             string uriID = $"https://api.themoviedb.org/3/movie/{id}?api_key={key}";
 
 
@@ -32,75 +52,150 @@ namespace MovieSearch.Classes
                 string responseContent = await response.Content.ReadAsStringAsync();
                 Movie movie = JsonConvert.DeserializeObject<Movie>(responseContent);
                 movie.PrintInfo();
+                Helper();
             }
             catch (Exception)
             {
-                Console.WriteLine(response.StatusCode);
-                Console.WriteLine("Hittar ej matchande film på angivet ID");
+                Console.WriteLine("Error: {0}",response.StatusCode);
+                Console.WriteLine("Unable to find any match");
             } 
             
         }
         
+
         public async Task SearchTitle()
         {
 
             DotNetEnv.Env.TraversePath().Load();
             string key = Environment.GetEnvironmentVariable("API_KEY");
-            Console.Write("Skriv in sökord: ");
-            string search = Console.ReadLine().ToLower();
-
-            string uriSearch = $"https://api.themoviedb.org/3/search/movie?api_key={key}&language=en-US&query={search}&page=1&include_adult=false";
-            var searchResponse = await client.GetAsync(uriSearch);
-
-            try
-            {
-                searchResponse.EnsureSuccessStatusCode();
-            }
-            catch (Exception)
-            {
-                Console.WriteLine(searchResponse);
-            }
-
-            string search1 = await searchResponse.Content.ReadAsStringAsync();
-
-            Search searchResults = JsonConvert.DeserializeObject<Search>(search1);
-            int i = 1;
-            Console.WriteLine("{0} resultat hittades på {1} sidor:", searchResults.total_results, searchResults.total_pages);
-            foreach (var item in searchResults.results)
-            {
-                Console.WriteLine(i + ") " + item.original_title);
-                i++;
-            }
+            string search;
             while (true)
             {
-                Console.Write("Välj träff: ");
-                int choice = Convert.ToInt32(Console.ReadLine());
-                if (choice <= searchResults.results.Count && choice >= 0)
+                Console.Write("Enter search term: ");
+                search = Console.ReadLine().ToLower();
+                if (search != "")
                 {
-                    if (choice != 0)
-                    {
-                        searchResults.results[choice - 1].PrintInfo();
-                        break;
+
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Error: Invalid search term!");
+                }
+            }
+            int page = 1;
+            while (true)
+            {
+                string uriSearch = $"https://api.themoviedb.org/3/search/movie?api_key={key}&language=en-US&query={search}&page={page}&include_adult=false";
+                var searchResponse = await client.GetAsync(uriSearch);
+
+                try
+                {
+                    searchResponse.EnsureSuccessStatusCode();
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine(searchResponse.StatusCode);
+                    Helper();
+                }
+
+                string search1 = await searchResponse.Content.ReadAsStringAsync();
+
+                Search searchResults = JsonConvert.DeserializeObject<Search>(search1);
+                Console.WriteLine("{0} results found on {1} total page(s):\n", searchResults.total_results, searchResults.total_pages);
+                Console.WriteLine("Page: {0} of {1}",page,searchResults.total_pages);
+                Padder();
+                foreach (var item in searchResults.results)
+                {
+                    Console.WriteLine(searchResults.results.IndexOf(item) + 1 + ") " + item.title);
+                }
+                if (searchResults.total_pages>1)
+                {
+                    if(searchResults.total_pages!=page)
+                    { 
+                    Padder();
+                    Console.WriteLine(searchResults.results.Count + 1 + ") View next page");
+                        if (searchResults.total_pages != page && page != 1)
+                        {
+                            Console.WriteLine(searchResults.results.Count+2 +") View previous page");
+                        }
+
                     }
                     else
                     {
-                        return;
+                        Padder();
+                        Console.WriteLine(searchResults.results.Count + 1 + ") View previous page");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Ogiltigt val");
+                    Padder();
                 }
+                int choice = -1;
+
+                    Console.WriteLine("0) Return to main menu");
+                    Padder();
+                    Console.Write("Selection: ");
+                    
+                    try
+                    {
+                        choice = Convert.ToInt32(Console.ReadLine());
+                        Console.Clear();
+                    }
+                    catch(Exception)
+                    {
+                        //Console.WriteLine("Invalid choice!");
+                    }
+                    
+                    if (choice <= searchResults.results.Count && choice >= 0)
+                    {
+
+                        if (choice != 0)
+                        {
+                            searchResults.results[choice - 1].PrintInfo();
+                            Helper();
+                        }
+                        else
+                        {
+                            Console.Clear();
+                            return;
+                        }
+                    }
+                    else if (choice> searchResults.results.Count && searchResults.total_pages>1)
+                    {
+                        if (choice == searchResults.results.Count+1 && page != searchResults.total_pages)
+                        {
+                            page++;
+                        }
+                        else if (choice == searchResults.results.Count + 2 && page != searchResults.total_pages && page!=1)
+                        {
+                            page--;
+                        }
+                        else if(choice == searchResults.results.Count+1 && page == searchResults.total_pages)
+                        {
+                            page--;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error: invalid selection!");
+                        }
+                    }
+                    else
+                    {
+                    Console.Clear();
+                        Console.WriteLine("Error: Invalid selection!");
+                        
+                    }
             }
         }
         
         public string RunMenu()
         {
-
-                Console.WriteLine("1) Sök film med ID");
-                Console.WriteLine("2) Sök film efter titel");
-                Console.WriteLine("3) Avsluta");
-
+                Console.WriteLine("MovieSearch".PadRight(18, '-').PadLeft(25,'-'));
+                Console.WriteLine("1) Look up movie by ID");
+                Console.WriteLine("2) Search movie by title");
+                Console.WriteLine("3) Exit\n".PadRight(33, '-'));
+                Console.Write("Selection: ");
                 string choice = Console.ReadLine();
             return choice;
         }
@@ -114,20 +209,18 @@ namespace MovieSearch.Classes
                     case "1":
                         Console.Clear();
                         SearchID().Wait();
-                        Helper();
                         break;
                     case "2":
                         Console.Clear();
                         SearchTitle().Wait();
-                        Helper();
                         break;
                     case "3":
                         Console.Clear();
-                        Console.WriteLine("Programmet avslutas.");
+                        Console.WriteLine("Exiting program.\n");
                         return;
                     default:
                         Console.Clear();
-                        Console.WriteLine("Ogiltigt val!\n");
+                        Console.WriteLine("Error: Invalid selection!\n");
                         break;
 
                 }
@@ -136,11 +229,17 @@ namespace MovieSearch.Classes
 
         private static void Helper()
         {
-            Console.WriteLine("_".PadLeft(50,'_'));
-            Console.WriteLine("\nTryck på valfri tangent för att återgå till huvudmeny...");
+            Padder();
+            Console.Write("\nPress any key to return to main menu...");
             Console.ReadKey();
             Console.Clear();
         }
+
+        public static void Padder()
+        {
+            Console.WriteLine("-".PadLeft(50, '-'));
+        }
+
         public Menu()
         {
 
