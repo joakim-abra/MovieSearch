@@ -15,7 +15,7 @@ namespace MovieSearch
 
         public Search()
         {
-            
+
         }
     }
 }
