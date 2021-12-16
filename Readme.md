@@ -1,6 +1,6 @@
-﻿# Markdown File
-## MovieSearch v 0.5
-***Moviesearch*** is a simple program for looking up movie info by either entering a TMDB-ID or search for titles using TMDB's API.
+﻿
+## MovieSearch v 1.0
+***MovieSearch*** is a simple program for looking up movie info by either entering a TMDB-ID, or by searching for titles, using TMDB's API.
 
 
 
